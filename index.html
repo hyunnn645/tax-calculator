@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>임직원 실구매가 계산기</title>
+    <title>임직원 할인 실구매가 계산기</title>
     <style>
         body { 
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
@@ -137,6 +137,52 @@
             margin-top: 15px;
             line-height: 1.4;
         }
+        
+        /* 토글(Details) 스타일 */
+        .tax-info-toggle {
+            margin-top: 25px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px 15px;
+        }
+        .tax-info-toggle summary {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            list-style: none; /* 기본 화살표 숨김 */
+        }
+        .tax-info-toggle summary::-webkit-details-marker {
+            display: none;
+        }
+        .tax-info-toggle summary::before {
+            content: "▶";
+            font-size: 12px;
+            color: #007bff;
+            margin-right: 8px;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .tax-info-toggle[open] summary::before {
+            transform: rotate(90deg);
+        }
+        .tax-info-toggle[open] summary {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed #ccc;
+            color: #007bff;
+        }
+        .tax-info-toggle ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+        .tax-info-toggle li {
+            margin-bottom: 6px;
+        }
     </style>
 </head>
 <body>
@@ -193,16 +239,24 @@
                 * 실제 부과되는 세금은 개인의 연말정산 및 각종 공제 내역에 따라 약간의 차이가 있을 수 있습니다.
             </p>
         </div>
+
+        <!-- 소득세율 구간 안내 토글 -->
+        <details class="tax-info-toggle">
+            <summary>내 소득세율 구간 확인하는 방법</summary>
+            <ul>
+                <li><strong>세율 산출 기준:</strong> 소득세율 구간은 단순 세전 연봉이 아닌, 연봉에서 각종 공제(비과세, 신용카드 등)를 뺀 <strong>'과세표준'</strong>을 기준으로 정해집니다.</li>
+                <li><strong>내 과세표준 확인법:</strong> 작년 연말정산 <strong>'근로소득 원천징수영수증'</strong>의 '과세표준' 금액을 확인하시면 가장 근접한 올해 세율을 유추할 수 있습니다.</li>
+                <li><strong>최종 세금 정산:</strong> 다음 달 월급에서 위 계산된 세금이 임시로 공제되며, <strong>내년 초 연말정산 시</strong> 올해 최종 소득을 기준으로 정확한 세금이 다시 정산됩니다 (환급 또는 추가 징수).</li>
+            </ul>
+        </details>
+
     </div>
 
     <script>
         // 숫자에 콤마를 찍어주는 함수
         function formatNumber(input) {
-            // 입력값에서 콤마(,)와 숫자가 아닌 문자 제거
             let value = input.value.replace(/,/g, '');
             value = value.replace(/[^0-9]/g, '');
-            
-            // 숫자가 있으면 천 단위 콤마 추가
             if (value) {
                 input.value = Number(value).toLocaleString('ko-KR');
             } else {
@@ -211,7 +265,6 @@
         }
 
         function calculateTax() {
-            // 입력창의 값에서 콤마를 제거한 뒤 숫자로 변환
             const marketPriceStr = document.getElementById('marketPrice').value.replace(/,/g, '');
             const employeePriceStr = document.getElementById('employeePrice').value.replace(/,/g, '');
             
@@ -246,7 +299,7 @@
             let taxableAmount = discount - nonTaxableLimit;
             if (taxableAmount <= 0) taxableAmount = 0;
 
-            // 4. 세금 계산 (소득세 + 지방소득세 10%)
+            // 4. 세금 계산
             const incomeTax = Math.floor(taxableAmount * (taxRate / 100));
             const localTax = Math.floor(incomeTax * 0.1);
             const totalTax = incomeTax + localTax;
