@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>임직원 할인 실구매가 계산기</title>
+    <title>임직원 실구매가 계산기</title>
     <style>
         body { 
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
@@ -36,7 +36,7 @@
             color: #555; 
             font-size: 14px;
         }
-        input[type="number"], select { 
+        input[type="text"], select { 
             width: 100%; 
             padding: 10px; 
             margin-top: 5px; 
@@ -145,10 +145,10 @@
         <p class="subtitle">소득세법 개정안 기준 (세금 포함 최종 체감가 계산)</p>
 
         <label for="marketPrice">시가 (일반소비자 판매가, 원)</label>
-        <input type="number" id="marketPrice" placeholder="예: 2000000" required>
+        <input type="text" id="marketPrice" placeholder="예: 2,000,000" oninput="formatNumber(this)" required>
 
         <label for="employeePrice">임직원가 (할인 적용가, 원)</label>
-        <input type="number" id="employeePrice" placeholder="예: 1000000" required>
+        <input type="text" id="employeePrice" placeholder="예: 1,000,000" oninput="formatNumber(this)" required>
 
         <div class="checkbox-group">
             <input type="checkbox" id="isExhausted">
@@ -196,9 +196,27 @@
     </div>
 
     <script>
+        // 숫자에 콤마를 찍어주는 함수
+        function formatNumber(input) {
+            // 입력값에서 콤마(,)와 숫자가 아닌 문자 제거
+            let value = input.value.replace(/,/g, '');
+            value = value.replace(/[^0-9]/g, '');
+            
+            // 숫자가 있으면 천 단위 콤마 추가
+            if (value) {
+                input.value = Number(value).toLocaleString('ko-KR');
+            } else {
+                input.value = '';
+            }
+        }
+
         function calculateTax() {
-            const marketPrice = Number(document.getElementById('marketPrice').value);
-            const employeePrice = Number(document.getElementById('employeePrice').value);
+            // 입력창의 값에서 콤마를 제거한 뒤 숫자로 변환
+            const marketPriceStr = document.getElementById('marketPrice').value.replace(/,/g, '');
+            const employeePriceStr = document.getElementById('employeePrice').value.replace(/,/g, '');
+            
+            const marketPrice = Number(marketPriceStr);
+            const employeePrice = Number(employeePriceStr);
             const isExhausted = document.getElementById('isExhausted').checked;
             const taxRate = Number(document.getElementById('taxRate').value);
 
@@ -237,11 +255,9 @@
             const finalPrice = employeePrice + totalTax;
 
             // --- 화면 출력 ---
-            // 1단계 출력
             document.getElementById('processLimit').innerHTML = 
                 `할인 금액: ${discount.toLocaleString()}원<br>비과세 한도: ${limitProcessText}`;
 
-            // 2단계 출력
             if (taxableAmount === 0) {
                 document.getElementById('processTaxable').innerHTML = 
                     `할인 금액이 비과세 한도 이내이므로 <strong>과세 대상 아님 (0원)</strong>`;
@@ -250,7 +266,6 @@
                     `${discount.toLocaleString()}원 - ${nonTaxableLimit.toLocaleString()}원 = <strong>${taxableAmount.toLocaleString()}원</strong>`;
             }
 
-            // 3단계 (세금) 출력
             if (taxableAmount === 0) {
                 document.getElementById('processTaxDetail').innerHTML = `<span class="tax-val">0원</span> <span style="font-size:13px; color:#666;">(추가 세금 없음)</span>`;
             } else {
@@ -260,7 +275,6 @@
                      <strong>합계: <span class="tax-val">${totalTax.toLocaleString()}원</span></strong>`;
             }
 
-            // 최종 결과 출력
             document.getElementById('resFinalPrice').innerText = `${finalPrice.toLocaleString()}원`;
             document.getElementById('resFinalDetail').innerHTML = 
                 `임직원결제가 <strong>${employeePrice.toLocaleString()}원</strong> + 납부할 세금 <strong>${totalTax.toLocaleString()}원</strong>`;
