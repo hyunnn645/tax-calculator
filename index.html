@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>임직원 할인 과세 대상 금액 계산기</title>
+    <title>임직원 할인 실구매가 계산기</title>
     <style>
         body { 
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
@@ -21,15 +21,22 @@
         h2 { 
             text-align: center; 
             color: #333; 
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 13px; 
+            color: #777; 
+            text-align: center;
+            margin-bottom: 25px;
         }
         label { 
             display: block; 
             margin-top: 15px; 
             font-weight: bold; 
             color: #555; 
-            font-size: 15px;
+            font-size: 14px;
         }
-        input[type="number"] { 
+        input[type="number"], select { 
             width: 100%; 
             padding: 10px; 
             margin-top: 5px; 
@@ -39,7 +46,7 @@
             font-size: 16px; 
         }
         .checkbox-group { 
-            margin-top: 20px; 
+            margin-top: 15px; 
             background: #fff8e1; 
             padding: 15px; 
             border-radius: 6px; 
@@ -63,7 +70,7 @@
         }
         button { 
             width: 100%; 
-            padding: 12px; 
+            padding: 14px; 
             margin-top: 25px; 
             background-color: #007bff; 
             color: white; 
@@ -91,21 +98,38 @@
             margin-top: 15px;
         }
         .step-detail {
-            font-size: 15px;
+            font-size: 14px;
             color: #333;
             background: #fff;
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             border: 1px solid #ddd;
             line-height: 1.5;
         }
-        .highlight { 
-            color: #d9534f; 
-            font-weight: bold; 
-            font-size: 22px; 
-            display: block;
-            margin-top: 10px;
+        .highlight-box {
+            border: 2px solid #007bff; 
+            background-color: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
             text-align: center;
+        }
+        .highlight-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+        .highlight-val { 
+            color: #0056b3; 
+            font-weight: bold; 
+            font-size: 24px; 
+            display: block;
+        }
+        .tax-val {
+            color: #d9534f;
+            font-weight: bold;
+            font-size: 18px;
         }
         .footer-note {
             font-size: 12px; 
@@ -117,8 +141,8 @@
 </head>
 <body>
     <div class="container">
-        <h2>임직원 할인 과세 계산기</h2>
-        <p style="font-size: 13px; color: #777; text-align: center;">소득세법 개정안 기준</p>
+        <h2>임직원 할인 실구매가 계산기</h2>
+        <p class="subtitle">소득세법 개정안 기준 (세금 포함 최종 체감가 계산)</p>
 
         <label for="marketPrice">시가 (일반소비자 판매가, 원)</label>
         <input type="number" id="marketPrice" placeholder="예: 2000000" required>
@@ -131,26 +155,42 @@
             <label for="isExhausted">올해 비과세 연간 누적 한도(240만 원)를<br>이미 모두 소진했습니다.</label>
         </div>
 
-        <button onclick="calculateTax()">계산하기 및 과정 보기</button>
+        <label for="taxRate">본인 소득세율 구간 (지방소득세 10% 별도 자동합산)</label>
+        <select id="taxRate">
+            <option value="6">6% (1,400만 원 이하)</option>
+            <option value="15">15% (5,000만 원 이하)</option>
+            <option value="24" selected>24% (8,800만 원 이하)</option>
+            <option value="35">35% (1.5억 원 이하)</option>
+            <option value="38">38% (3억 원 이하)</option>
+            <option value="40">40% (5억 원 이하)</option>
+            <option value="42">42% (10억 원 이하)</option>
+            <option value="45">45% (10억 원 초과)</option>
+        </select>
+
+        <button onclick="calculateTax()">실구매가 계산하기</button>
 
         <div class="result" id="resultArea" style="display: none;">
-            <div class="step-title">1. 할인 금액 계산</div>
-            <div class="step-detail" id="processDiscount"></div>
-
-            <div class="step-title">2. 비과세 한도 산출</div>
+            <div class="step-title">1. 할인 금액 및 비과세 한도</div>
             <div class="step-detail" id="processLimit"></div>
-
-            <hr style="border: 0; border-top: 1px dashed #ccc; margin: 20px 0;">
             
-            <div class="step-title" style="font-size: 16px; color: #d9534f;">3. 최종 과세 대상 금액 (근로소득 합산)</div>
+            <div class="step-title">2. 과세 대상 금액</div>
+            <div class="step-detail" id="processTaxable"></div>
+
+            <div class="step-title">3. 추가 납부 예상 세금 (다음 달 월급 공제 예상액)</div>
             <div class="step-detail" style="border-color: #d9534f; background-color: #fdf5f5;">
-                <span id="processTaxable"></span>
-                <span class="highlight" id="resTaxable">0원</span>
+                <span id="processTaxDetail"></span>
+            </div>
+
+            <div class="highlight-box">
+                <div class="highlight-title">최종 실구매가 (임직원가 + 세금)</div>
+                <span class="highlight-val" id="resFinalPrice">0원</span>
+                <div style="font-size: 13px; color: #555; margin-top: 8px;" id="resFinalDetail"></div>
             </div>
 
             <p class="footer-note">
-                * 비과세 한도는 기본적으로 '시가의 20%'와 '연 240만 원' 중 큰 금액이 적용되나, 연간 한도 소진 시 '시가의 20%'만 적용됩니다.<br>
-                * 최종 세금은 위 '과세 대상 금액'에 본인의 소득세 한계세율을 곱하여 산출됩니다.
+                * 비과세 한도는 '시가의 20%'와 '연 240만 원' 중 큰 금액 적용 (한도 소진 시 20%만 적용)<br>
+                * 지방소득세는 소득세의 10%로 자동 가산되어 계산되었습니다.<br>
+                * 실제 부과되는 세금은 개인의 연말정산 및 각종 공제 내역에 따라 약간의 차이가 있을 수 있습니다.
             </p>
         </div>
     </div>
@@ -160,6 +200,7 @@
             const marketPrice = Number(document.getElementById('marketPrice').value);
             const employeePrice = Number(document.getElementById('employeePrice').value);
             const isExhausted = document.getElementById('isExhausted').checked;
+            const taxRate = Number(document.getElementById('taxRate').value);
 
             if (!marketPrice || !employeePrice || marketPrice <= employeePrice) {
                 alert("올바른 시가와 임직원가를 입력해주세요. (시가가 임직원가보다 커야 합니다)");
@@ -175,45 +216,54 @@
             let limitProcessText = "";
 
             if (isExhausted) {
-                // 연간 한도 소진 시 20%만 적용
                 nonTaxableLimit = limitPercentage;
-                limitProcessText = `연간 한도(240만 원) 소진으로 <strong>시가의 20%만 적용</strong><br>
-                                    = <strong>${nonTaxableLimit.toLocaleString()}원</strong>`;
+                limitProcessText = `연간 한도 소진으로 시가의 20%만 적용: <strong>${nonTaxableLimit.toLocaleString()}원</strong>`;
             } else {
-                // 기본 산식: Max(시가의 20%, 2,400,000원)
                 const limitFixed = 2400000;
                 nonTaxableLimit = Math.max(limitPercentage, limitFixed);
-                limitProcessText = `Max (시가의 20% [<strong>${limitPercentage.toLocaleString()}원</strong>], 연 240만 원)<br>
-                                    = <strong>${nonTaxableLimit.toLocaleString()}원</strong>`;
+                limitProcessText = `Max(시가 20%, 240만원) 적용: <strong>${nonTaxableLimit.toLocaleString()}원</strong>`;
             }
 
-            // 3. 과세 대상 금액 계산 (할인 금액 - 비과세 한도)
+            // 3. 과세 대상 금액
             let taxableAmount = discount - nonTaxableLimit;
-            let isZeroTax = false;
-            if (taxableAmount <= 0) {
-                taxableAmount = 0;
-                isZeroTax = true;
-            }
+            if (taxableAmount <= 0) taxableAmount = 0;
 
-            // 과정 1 출력
-            document.getElementById('processDiscount').innerHTML = 
-                `${marketPrice.toLocaleString()}원 (시가) - ${employeePrice.toLocaleString()}원 (임직원가)<br>
-                = <strong>${discount.toLocaleString()}원</strong>`;
+            // 4. 세금 계산 (소득세 + 지방소득세 10%)
+            const incomeTax = Math.floor(taxableAmount * (taxRate / 100));
+            const localTax = Math.floor(incomeTax * 0.1);
+            const totalTax = incomeTax + localTax;
 
-            // 과정 2 출력
-            document.getElementById('processLimit').innerHTML = limitProcessText;
+            // 5. 최종 실구매가
+            const finalPrice = employeePrice + totalTax;
 
-            // 과정 3 출력
-            if (isZeroTax) {
+            // --- 화면 출력 ---
+            // 1단계 출력
+            document.getElementById('processLimit').innerHTML = 
+                `할인 금액: ${discount.toLocaleString()}원<br>비과세 한도: ${limitProcessText}`;
+
+            // 2단계 출력
+            if (taxableAmount === 0) {
                 document.getElementById('processTaxable').innerHTML = 
-                    `${discount.toLocaleString()}원 (할인금액) - ${nonTaxableLimit.toLocaleString()}원 (비과세 한도)<br>
-                    <span style="font-size: 13px; color: #666;">(할인금액이 비과세 한도 이내이므로 과세 대상 아님)</span>`;
+                    `할인 금액이 비과세 한도 이내이므로 <strong>과세 대상 아님 (0원)</strong>`;
             } else {
                 document.getElementById('processTaxable').innerHTML = 
-                    `${discount.toLocaleString()}원 (할인금액) - ${nonTaxableLimit.toLocaleString()}원 (비과세 한도)`;
+                    `${discount.toLocaleString()}원 - ${nonTaxableLimit.toLocaleString()}원 = <strong>${taxableAmount.toLocaleString()}원</strong>`;
             }
-            
-            document.getElementById('resTaxable').innerText = `${taxableAmount.toLocaleString()}원`;
+
+            // 3단계 (세금) 출력
+            if (taxableAmount === 0) {
+                document.getElementById('processTaxDetail').innerHTML = `<span class="tax-val">0원</span> <span style="font-size:13px; color:#666;">(추가 세금 없음)</span>`;
+            } else {
+                document.getElementById('processTaxDetail').innerHTML = 
+                    `소득세(${taxRate}%): ${incomeTax.toLocaleString()}원<br>
+                     지방소득세(소득세의 10%): ${localTax.toLocaleString()}원<br>
+                     <strong>합계: <span class="tax-val">${totalTax.toLocaleString()}원</span></strong>`;
+            }
+
+            // 최종 결과 출력
+            document.getElementById('resFinalPrice').innerText = `${finalPrice.toLocaleString()}원`;
+            document.getElementById('resFinalDetail').innerHTML = 
+                `임직원결제가 <strong>${employeePrice.toLocaleString()}원</strong> + 납부할 세금 <strong>${totalTax.toLocaleString()}원</strong>`;
 
             document.getElementById('resultArea').style.display = 'block';
         }
